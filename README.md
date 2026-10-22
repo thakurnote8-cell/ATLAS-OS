@@ -27,7 +27,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Set `OPENAI_API_KEY` in your local environment (or load it using your preferred secret manager). Never commit the key. Set `OPENAI_MODEL` to a model available to your API project.
+Set `OPENAI_API_KEY` in your local environment (or load it using your preferred secret manager). Never commit the key. Set `OPENAI_MODEL` to a model available to your API project and `ATLAS_REASONING_EFFORT` to `low`, `medium`, or `high`. The `/v1/plan` request's `goal` and `context` are sent to the configured OpenAI API provider to generate the plan; do not include information you are not comfortable sending to that provider.
 
 ```bash
 uvicorn app.main:app --reload
