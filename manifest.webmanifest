@@ -1,0 +1,9 @@
+{
+  "name": "Atlas OS Preview",
+  "short_name": "Atlas OS",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#10131d",
+  "theme_color": "#10131d",
+  "description": "Installable local planning preview"
+}
