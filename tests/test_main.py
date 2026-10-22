@@ -128,3 +128,14 @@ def test_openapi_documents_bearer_authentication():
     data = schema.json()
     assert data["components"]["securitySchemes"]["BearerAuth"]["scheme"] == "bearer"
     assert data["paths"]["/v1/plan"]["post"]["security"] == [{"BearerAuth": []}]
+
+
+def test_web_preview_and_install_assets_are_served():
+    web = TestClient(atlas.app)
+    page = web.get("/")
+    assert page.status_code == 200
+    assert "ATLAS OS" in page.text
+    assert web.get("/manifest.webmanifest").status_code == 200
+    worker = web.get("/sw.js")
+    assert worker.status_code == 200
+    assert "Service-Worker-Allowed" in worker.headers
