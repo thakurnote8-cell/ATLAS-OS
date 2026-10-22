@@ -50,3 +50,28 @@ def test_plan_uses_validated_structured_result(monkeypatch):
 def test_invalid_goal_is_rejected():
     response = client.post("/v1/plan", json={"goal": "x"})
     assert response.status_code == 422
+
+
+def test_health_requires_both_key_and_model(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["model_configured"] is False
+
+
+def test_plan_requires_model_configuration(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    response = client.post("/v1/plan", json={"goal": "Plan my week"})
+    assert response.status_code == 503
+    assert "OPENAI_MODEL" in response.json()["detail"]
+
+
+def test_invalid_reasoning_effort_is_rejected_before_provider_call(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "test-model")
+    monkeypatch.setenv("ATLAS_REASONING_EFFORT", "turbo")
+    response = client.post("/v1/plan", json={"goal": "Plan my week"})
+    assert response.status_code == 503
+    assert "ATLAS_REASONING_EFFORT" in response.json()["detail"]
