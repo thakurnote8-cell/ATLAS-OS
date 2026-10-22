@@ -90,6 +90,8 @@ def test_planning_api_rejects_missing_bearer_token(monkeypatch):
     assert response.status_code == 401
     assert response.headers["www-authenticate"] == "Bearer"
 
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["cache-control"] == "no-store"
 
 def test_planning_api_fails_closed_without_configured_token(monkeypatch):
     monkeypatch.delenv("ATLAS_API_TOKEN", raising=False)
