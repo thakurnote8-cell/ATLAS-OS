@@ -67,10 +67,11 @@ def generate_plan(goal: str, context: str) -> PlanResponse:
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
         raise ModelNotConfigured("OPENAI_API_KEY is not configured")
+    model = os.getenv("OPENAI_MODEL", "").strip()
+    if not model:
+        raise ModelNotConfigured("OPENAI_MODEL is not configured")
 
     from openai import OpenAI
-
-    model = os.getenv("OPENAI_MODEL", "gpt-6.1-sol")
     effort = os.getenv("ATLAS_REASONING_EFFORT", "medium")
     client = OpenAI(api_key=api_key)
     response = client.responses.create(
