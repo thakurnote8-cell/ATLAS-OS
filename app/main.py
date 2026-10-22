@@ -8,7 +8,8 @@ from typing import List
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 app = FastAPI(
@@ -151,6 +152,29 @@ def generate_plan(goal: str, context: str) -> PlanResponse:
     if not response.output_text:
         raise ValueError("Model returned no structured output")
     return PlanResponse.model_validate_json(response.output_text)
+
+
+@app.get("/", include_in_schema=False)
+def web_preview():
+    """Serve the installable browser preview when running the API locally."""
+    return FileResponse(Path(__file__).resolve().parent.parent / "index.html")
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def web_manifest():
+    return FileResponse(
+        Path(__file__).resolve().parent.parent / "manifest.webmanifest",
+        media_type="application/manifest+json",
+    )
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    return FileResponse(
+        Path(__file__).resolve().parent.parent / "sw.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"},
+    )
 
 
 @app.get("/health")
