@@ -61,6 +61,6 @@ Tests use a mocked planning result and do not require a paid API call. A real pl
 
 ## Required configuration before running
 
-Set `ATLAS_API_TOKEN` to a cryptographically random secret of at least 32 characters, alongside `OPENAI_API_KEY`, `OPENAI_MODEL`, and a supported `ATLAS_REASONING_EFFORT`. Never commit secrets. The API requires `Authorization: Bearer <token>` for planning and schema routes.
+Set `ATLAS_API_TOKEN` to a cryptographically random secret of at least 32 characters, alongside `OPENAI_API_KEY`, `OPENAI_MODEL`, and a supported `ATLAS_REASONING_EFFORT`. Never commit secrets. Planning endpoints require `Authorization: Bearer <token>`. The API schema/docs are public but mark protected routes with a bearer security scheme so Swagger's **Authorize** control can supply the token.
 
 Keep the service on localhost or behind HTTPS and a trusted reverse proxy. The shared token is a basic deployment guard, not per-user identity or authorization. Before external users, add per-user access controls, request rate limits, audit/observability, data retention controls, secret rotation, and a security review.
