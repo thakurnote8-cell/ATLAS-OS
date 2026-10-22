@@ -32,7 +32,12 @@ async def require_api_token(request: Request, call_next):
     scheme, _, credential = supplied.partition(" ")
     if scheme.lower() != "bearer" or not credential or not hmac.compare_digest(credential, expected):
         return JSONResponse(status_code=401, content={"detail": "Valid bearer token required."}, headers={"WWW-Authenticate": "Bearer"})
-    return await call_next(request)
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 
 class PlanRequest(BaseModel):
@@ -97,7 +102,7 @@ def generate_plan(goal: str, context: str) -> PlanResponse:
     effort = os.getenv("ATLAS_REASONING_EFFORT", "medium").strip().lower()
     if effort not in {"low", "medium", "high"}:
         raise ModelNotConfigured("ATLAS_REASONING_EFFORT must be low, medium, or high")
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, timeout=20.0, max_retries=1)
     response = client.responses.create(
         model=model,
         reasoning={"effort": effort},
