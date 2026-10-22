@@ -59,10 +59,8 @@ Tests use a mocked planning result and do not require a paid API call. A real pl
 5. Add wearable/health adapters only for devices and APIs that support the required access.
 
 
-## Containerized deployment baseline
+## Required configuration before running
 
-1. Copy `.env.example` to `.env`; set a strong `ATLAS_API_TOKEN`, `OPENAI_API_KEY`, and a model ID available to your API project.
-2. Run `docker compose up --build -d`; the service is bound to `127.0.0.1:8001` by default.
-3. Put a TLS reverse proxy in front before remote access and store secrets in the hosting platform's secret manager in production.
+Set `ATLAS_API_TOKEN` to a cryptographically random secret of at least 32 characters, alongside `OPENAI_API_KEY`, `OPENAI_MODEL`, and a supported `ATLAS_REASONING_EFFORT`. Never commit secrets. The API requires `Authorization: Bearer <token>` for planning and schema routes.
 
-The container runs as a non-root user, has a read-only root filesystem, drops Linux capabilities, and has a health check. This is a protected planning API foundation, not the full personal operating system. Before external users, add per-user identity and authorization, request rate limits, audit/observability, data retention controls, deployment secret rotation, and a security review.
+Keep the service on localhost or behind HTTPS and a trusted reverse proxy. The shared token is a basic deployment guard, not per-user identity or authorization. Before external users, add per-user access controls, request rate limits, audit/observability, data retention controls, secret rotation, and a security review.
