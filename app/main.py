@@ -72,7 +72,9 @@ def generate_plan(goal: str, context: str) -> PlanResponse:
         raise ModelNotConfigured("OPENAI_MODEL is not configured")
 
     from openai import OpenAI
-    effort = os.getenv("ATLAS_REASONING_EFFORT", "medium")
+    effort = os.getenv("ATLAS_REASONING_EFFORT", "medium").strip().lower()
+    if effort not in {"low", "medium", "high"}:
+        raise ModelNotConfigured("ATLAS_REASONING_EFFORT must be low, medium, or high")
     client = OpenAI(api_key=api_key)
     response = client.responses.create(
         model=model,
@@ -105,7 +107,10 @@ def health() -> dict:
     return {
         "status": "ok",
         "service": "atlas-os-api",
-        "model_configured": bool(os.getenv("OPENAI_API_KEY", "").strip()),
+        "model_configured": bool(
+            os.getenv("OPENAI_API_KEY", "").strip()
+            and os.getenv("OPENAI_MODEL", "").strip()
+        ),
         "execution_enabled": False,
     }
 
@@ -117,7 +122,7 @@ def create_plan(request: PlanRequest) -> PlanResponse:
     except ModelNotConfigured:
         raise HTTPException(
             status_code=503,
-            detail="Model not configured. Set OPENAI_API_KEY in the local environment.",
+            detail="Model not configured. Set both OPENAI_API_KEY and OPENAI_MODEL; ensure ATLAS_REASONING_EFFORT is low, medium, or high.",
         )
     except Exception:
         # Avoid returning provider errors, credentials, or internal stack traces to clients.
