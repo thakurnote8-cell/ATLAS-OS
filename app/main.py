@@ -7,6 +7,7 @@ import os
 from typing import List
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,7 +23,7 @@ app = FastAPI(
 @app.middleware("http")
 async def require_api_token(request: Request, call_next):
     """Fail closed for planning and API schema routes unless a strong token is configured."""
-    protected = request.url.path.startswith("/v1/") or request.url.path in {"/docs", "/redoc", "/openapi.json"}
+    protected = request.url.path.startswith("/v1/")
     if not protected:
         response = await call_next(request)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -43,6 +44,25 @@ async def require_api_token(request: Request, call_next):
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Cache-Control", "no-store")
     return response
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(title=app.title, version=app.version, description=app.description, routes=app.routes)
+    schema.setdefault("components", {}).setdefault("securitySchemes", {})["BearerAuth"] = {
+        "type": "http", "scheme": "bearer", "bearerFormat": "opaque API token"
+    }
+    for path, operations in schema.get("paths", {}).items():
+        if path.startswith("/v1/"):
+            for operation in operations.values():
+                if isinstance(operation, dict):
+                    operation["security"] = [{"BearerAuth": []}]
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 class PlanRequest(BaseModel):
