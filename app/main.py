@@ -1,12 +1,14 @@
 """Atlas OS API foundation: structured planning, with no implicit execution."""
 from __future__ import annotations
 
+import hmac
 import json
 import os
 from typing import List
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field
 
 app = FastAPI(
     title="Atlas OS API",
@@ -15,7 +17,27 @@ app = FastAPI(
 )
 
 
+
+
+@app.middleware("http")
+async def require_api_token(request: Request, call_next):
+    """Fail closed for planning and API schema routes unless a strong token is configured."""
+    protected = request.url.path.startswith("/v1/") or request.url.path in {"/docs", "/redoc", "/openapi.json"}
+    if not protected:
+        return await call_next(request)
+    expected = os.getenv("ATLAS_API_TOKEN", "").strip()
+    if len(expected) < 32:
+        return JSONResponse(status_code=503, content={"detail": "API unavailable: configure ATLAS_API_TOKEN with at least 32 characters."})
+    supplied = request.headers.get("authorization", "")
+    scheme, _, credential = supplied.partition(" ")
+    if scheme.lower() != "bearer" or not credential or not hmac.compare_digest(credential, expected):
+        return JSONResponse(status_code=401, content={"detail": "Valid bearer token required."}, headers={"WWW-Authenticate": "Bearer"})
+    return await call_next(request)
+
+
 class PlanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     goal: str = Field(min_length=3, max_length=2000)
     context: str = Field(default="", max_length=6000)
 
