@@ -103,3 +103,15 @@ def test_plan_context_is_bounded_and_extra_fields_rejected():
     assert too_long.status_code == 422
     extra = client.post("/v1/plan", json={"goal": "Plan my week", "unexpected": "value"})
     assert extra.status_code == 422
+
+
+def test_security_headers_are_set_on_responses():
+    response = TestClient(atlas.app).get("/health")
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_health_endpoint_remains_public():
+    response = TestClient(atlas.app).get("/health")
+    assert response.status_code == 200
