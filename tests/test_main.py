@@ -1,8 +1,15 @@
+import pytest
 from fastapi.testclient import TestClient
 
 import app.main as atlas
 
-client = TestClient(atlas.app)
+TEST_TOKEN = "test-token-that-is-at-least-thirty-two-characters"
+client = TestClient(atlas.app, headers={"Authorization": f"Bearer {TEST_TOKEN}"})
+
+
+@pytest.fixture(autouse=True)
+def configured_api_token(monkeypatch):
+    monkeypatch.setenv("ATLAS_API_TOKEN", TEST_TOKEN)
 
 
 def test_health_does_not_claim_model_is_configured(monkeypatch):
@@ -75,3 +82,24 @@ def test_invalid_reasoning_effort_is_rejected_before_provider_call(monkeypatch):
     response = client.post("/v1/plan", json={"goal": "Plan my week"})
     assert response.status_code == 503
     assert "ATLAS_REASONING_EFFORT" in response.json()["detail"]
+
+
+def test_planning_api_rejects_missing_bearer_token(monkeypatch):
+    monkeypatch.setenv("ATLAS_API_TOKEN", TEST_TOKEN)
+    response = TestClient(atlas.app).post("/v1/plan", json={"goal": "Plan my week"})
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_planning_api_fails_closed_without_configured_token(monkeypatch):
+    monkeypatch.delenv("ATLAS_API_TOKEN", raising=False)
+    response = TestClient(atlas.app).post("/v1/plan", json={"goal": "Plan my week"})
+    assert response.status_code == 503
+    assert "ATLAS_API_TOKEN" in response.json()["detail"]
+
+
+def test_plan_context_is_bounded_and_extra_fields_rejected():
+    too_long = client.post("/v1/plan", json={"goal": "Plan my week", "context": "x" * 6001})
+    assert too_long.status_code == 422
+    extra = client.post("/v1/plan", json={"goal": "Plan my week", "unexpected": "value"})
+    assert extra.status_code == 422
